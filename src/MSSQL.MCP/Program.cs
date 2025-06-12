@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Hosting;
 using MSSQL.MCP.Configuration;
 using MSSQL.MCP.Database;
+using MSSQL.MCP.Actors;
 
 var hostBuilder = new HostBuilder();
 
@@ -27,7 +28,13 @@ hostBuilder
 
     services.AddAkka("MyActorSystem", (builder, sp) =>
     {
-        
+        builder
+            .WithActors((system, registry, resolver) =>
+            {
+                // Database validation actor - tests actual connection
+                var dbValidationActorProps = resolver.Props<DatabaseValidationActor>();
+                var dbValidationActor = system.ActorOf(dbValidationActorProps, "database-validation");
+            });
     });
 });
 
