@@ -1,6 +1,8 @@
 using System.ComponentModel;
 using System.Data;
+using System.Text.RegularExpressions;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
 using MSSQL.MCP.Database;
 
@@ -10,29 +12,93 @@ namespace MSSQL.MCP.Tools;
 public class SqlExecutionTool
 {
     private readonly ISqlConnectionFactory _connectionFactory;
+    private readonly ILogger<SqlExecutionTool> _logger;
 
-    public SqlExecutionTool(ISqlConnectionFactory connectionFactory)
+    // Regex to detect valid T-SQL keywords at the beginning of queries
+    private static readonly Regex ValidTSqlStartPattern = new(
+        @"^\s*(SELECT|INSERT|UPDATE|DELETE|WITH|CREATE|ALTER|DROP|GRANT|REVOKE|EXEC|EXECUTE|DECLARE|SET|USE|BACKUP|RESTORE|TRUNCATE|MERGE)\s+",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    public SqlExecutionTool(ISqlConnectionFactory connectionFactory, ILogger<SqlExecutionTool> logger)
     {
         _connectionFactory = connectionFactory;
+        _logger = logger;
     }
 
-    [McpServerTool, Description("Execute SQL queries against the connected MSSQL database. Supports SELECT, INSERT, UPDATE, DELETE, and DDL operations.")]
+    [McpServerTool, Description(@"Execute T-SQL queries against the connected Microsoft SQL Server database. 
+    
+IMPORTANT: This tool ONLY accepts valid T-SQL (Transact-SQL) syntax for Microsoft SQL Server.
+
+Supported operations:
+- SELECT statements for data retrieval
+- INSERT, UPDATE, DELETE for data modification  
+- CREATE, ALTER, DROP for schema changes
+- WITH clauses for CTEs (Common Table Expressions)
+- EXEC/EXECUTE for stored procedures
+- And other valid T-SQL statements
+
+Examples of valid T-SQL:
+- SELECT * FROM Users WHERE Active = 1
+- INSERT INTO Products (Name, Price) VALUES ('Widget', 19.99)
+- UPDATE Customers SET Status = 'Active' WHERE ID = 123
+- CREATE TABLE Orders (ID int PRIMARY KEY, CustomerID int)
+
+The query parameter must contain ONLY the T-SQL statement - no explanations, markdown, or other text.")]
     public async Task<string> ExecuteSql(
-        [Description("The SQL query to execute")] string query,
+        [Description(@"The T-SQL query to execute. Must be valid Microsoft SQL Server T-SQL syntax only. 
+        Examples: 'SELECT * FROM Users', 'INSERT INTO Products VALUES (1, ''Name'')', 'CREATE TABLE Test (ID int)'
+        Do NOT include explanations, markdown formatting, or non-SQL text.")] 
+        string query,
         CancellationToken cancellationToken = default)
     {
+        // Log the incoming query for debugging
+        _logger.LogInformation("Received SQL execution request. Query length: {QueryLength} characters", query?.Length ?? 0);
+        _logger.LogDebug("SQL Query received: {Query}", query);
+
         if (string.IsNullOrWhiteSpace(query))
         {
+            _logger.LogWarning("Empty or null query received");
             return "Error: SQL query cannot be empty";
+        }
+
+        // Validate that the query looks like T-SQL
+        var trimmedQuery = query.Trim();
+        if (!ValidTSqlStartPattern.IsMatch(trimmedQuery))
+        {
+            _logger.LogWarning("Invalid T-SQL query received. Query does not start with valid T-SQL keyword: {QueryStart}", 
+                trimmedQuery.Length > 50 ? trimmedQuery[..50] + "..." : trimmedQuery);
+            
+            return @"Error: Invalid T-SQL syntax. This tool only accepts valid Microsoft SQL Server T-SQL statements.
+
+Valid T-SQL statements must start with keywords like:
+- SELECT (for data retrieval)
+- INSERT, UPDATE, DELETE (for data modification)  
+- CREATE, ALTER, DROP (for schema changes)
+- WITH (for CTEs)
+- EXEC/EXECUTE (for stored procedures)
+- And other valid T-SQL keywords
+
+Examples:
+✓ SELECT * FROM Users
+✓ INSERT INTO Products (Name) VALUES ('Test')
+✓ CREATE TABLE Orders (ID int)
+
+✗ Please show me all users
+✗ Can you create a table for orders?
+✗ ```sql SELECT * FROM Users```
+
+Please provide only the T-SQL statement without explanations or formatting.";
         }
 
         try
         {
+            _logger.LogInformation("Executing T-SQL query starting with: {QueryStart}", 
+                trimmedQuery.Length > 30 ? trimmedQuery[..30] + "..." : trimmedQuery);
+
             using var connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
             using var command = new SqlCommand(query, connection);
             
             // Determine if this is a SELECT query or a command
-            var trimmedQuery = query.Trim();
             var isSelectQuery = trimmedQuery.StartsWith("SELECT", StringComparison.OrdinalIgnoreCase) ||
                                trimmedQuery.StartsWith("WITH", StringComparison.OrdinalIgnoreCase);
 
@@ -40,21 +106,27 @@ public class SqlExecutionTool
             {
                 // Handle SELECT queries - return data
                 using var reader = await command.ExecuteReaderAsync(cancellationToken);
-                return await FormatQueryResults(reader, cancellationToken);
+                var result = await FormatQueryResults(reader, cancellationToken);
+                _logger.LogInformation("SELECT query executed successfully");
+                return result;
             }
             else
             {
                 // Handle INSERT/UPDATE/DELETE/DDL - return affected rows
                 var rowsAffected = await command.ExecuteNonQueryAsync(cancellationToken);
-                return $"Query executed successfully. Rows affected: {rowsAffected}";
+                var result = $"Query executed successfully. Rows affected: {rowsAffected}";
+                _logger.LogInformation("Non-SELECT query executed successfully. Rows affected: {RowsAffected}", rowsAffected);
+                return result;
             }
         }
         catch (SqlException ex)
         {
+            _logger.LogError(ex, "SQL execution failed with SQL error: {SqlErrorMessage}", ex.Message);
             return $"SQL Error: {ex.Message}";
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "SQL execution failed with general error: {ErrorMessage}", ex.Message);
             return $"Error: {ex.Message}";
         }
     }
@@ -96,8 +168,6 @@ public class SqlExecutionTool
             return $"Error listing tables: {ex.Message}";
         }
     }
-
-
 
     [McpServerTool, Description("List all schemas (databases) available in the SQL Server instance.")]
     public async Task<string> ListSchemas(CancellationToken cancellationToken = default)
