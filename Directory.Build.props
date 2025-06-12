@@ -7,8 +7,8 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <VersionPrefix>1.0.0</VersionPrefix>
-    <PackageReleaseNotes>Example release notes</PackageReleaseNotes>
+    <VersionPrefix>0.1.0</VersionPrefix>
+    <PackageReleaseNotes>- Initial release of mssql-mcp</PackageReleaseNotes>
   </PropertyGroup>
   <PropertyGroup>
     <!-- Visual Studio C# settings -->
@@ -24,7 +24,7 @@
     <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
   </ItemGroup>
   <!-- NuGet package properties -->
-    <ItemGroup>
+  <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)\akkalogo.png" Pack="true" PackagePath="\" />
     <None Include="$(MSBuildThisFileDirectory)\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>

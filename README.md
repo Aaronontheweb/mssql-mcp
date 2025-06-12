@@ -65,44 +65,18 @@ cd mssql-mcp
 
 # Build the Docker image
 dotnet publish --os linux --arch x64 /t:PublishContainer
+```
 
+You can run the container directly if you wish, but it's probably best to let the MCP server spin up the client:
+
+```bash
 # Run the container
 docker run -it --rm \
   -e MSSQL_CONNECTION_STRING="Server=host.docker.internal;Database=MyDB;Trusted_Connection=true;" \
   mssql-mcp:latest
 ```
 
-#### Docker Compose
-
-Create a `docker-compose.yml` file:
-
-```yaml
-version: '3.8'
-services:
-  mssql-mcp:
-    build: .
-    environment:
-      - MSSQL_CONNECTION_STRING=Server=sqlserver;Database=MyDatabase;User Id=sa;Password=YourPassword123!;
-    stdin_open: true
-    tty: true
-    depends_on:
-      - sqlserver
-      
-  sqlserver:
-    image: mcr.microsoft.com/mssql/server:2022-latest
-    environment:
-      - ACCEPT_EULA=Y
-      - SA_PASSWORD=YourPassword123!
-    ports:
-      - "1433:1433"
-```
-
-Run with:
-```bash
-docker-compose up
-```
-
-### Option 2: Local Development
+### Option 2: Local .NET Development
 
 #### Prerequisites
 - .NET 9.0 SDK
