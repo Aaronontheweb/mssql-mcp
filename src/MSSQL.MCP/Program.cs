@@ -1,5 +1,6 @@
 ﻿using Akka.Hosting;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using MSSQL.MCP.Configuration;
 using MSSQL.MCP.Database;
 using MSSQL.MCP.Actors;
@@ -18,6 +19,15 @@ hostBuilder
     })
     .ConfigureServices((context, services) =>
 {
+    // Configure logging to stderr for MCP protocol compatibility
+    services.AddLogging(builder =>
+    {
+        builder.AddConsole(consoleLogOptions =>
+        {
+            consoleLogOptions.LogToStandardErrorThreshold = Microsoft.Extensions.Logging.LogLevel.Trace;
+        });
+    });
+
     // Configure Database options with validation
     services.AddSingleton<IValidateOptions<DatabaseOptions>, DatabaseOptionsValidator>();
     services.AddOptionsWithValidateOnStart<DatabaseOptions>()
@@ -26,7 +36,13 @@ hostBuilder
     // Register SQL Connection Factory
     services.AddSingleton<ISqlConnectionFactory, SqlConnectionFactory>();
 
-    services.AddAkka("MyActorSystem", (builder, sp) =>
+    // Add MCP Server
+    services.AddMcpServer()
+        .WithStdioServerTransport()
+        .WithToolsFromAssembly();
+
+    // Add Akka.NET
+    services.AddAkka("MSSQLMcpActorSystem", (builder, sp) =>
     {
         builder
             .WithActors((system, registry, resolver) =>
