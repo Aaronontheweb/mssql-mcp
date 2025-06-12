@@ -1,7 +1,7 @@
 ﻿using Akka.Hosting;
-using Akka.Console;
 using Microsoft.Extensions.Hosting;
 using MSSQL.MCP.Configuration;
+using MSSQL.MCP.Database;
 
 var hostBuilder = new HostBuilder();
 
@@ -22,24 +22,25 @@ hostBuilder
     services.AddOptionsWithValidateOnStart<DatabaseOptions>()
         .BindConfiguration("Database");
 
+    // Register SQL Connection Factory
+    services.AddSingleton<ISqlConnectionFactory, SqlConnectionFactory>();
+
     services.AddAkka("MyActorSystem", (builder, sp) =>
     {
-        builder
-            .WithActors((system, registry, resolver) =>
-            {
-                var helloActor = system.ActorOf(Props.Create(() => new HelloActor()), "hello-actor");
-                registry.Register<HelloActor>(helloActor);
-            })
-            .WithActors((system, registry, resolver) =>
-            {
-                var timerActorProps =
-                    resolver.Props<TimerActor>(); // uses Msft.Ext.DI to inject reference to helloActor
-                var timerActor = system.ActorOf(timerActorProps, "timer-actor");
-                registry.Register<TimerActor>(timerActor);
-            });
+        
     });
 });
 
 var host = hostBuilder.Build();
+
+// Validate database connection on startup
+var connectionFactory = host.Services.GetRequiredService<ISqlConnectionFactory>();
+var isConnectionValid = await connectionFactory.ValidateConnectionAsync();
+if (!isConnectionValid)
+{
+    throw new InvalidOperationException("Unable to connect to the database with the provided connection string. Please verify MSSQL_CONNECTION_STRING is correct and the database is accessible.");
+}
+
+Console.WriteLine("✅ Database connection validated successfully");
 
 await host.RunAsync();
