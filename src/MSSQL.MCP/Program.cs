@@ -1,11 +1,27 @@
 ﻿using Akka.Hosting;
 using Akka.Console;
 using Microsoft.Extensions.Hosting;
+using MSSQL.MCP.Configuration;
 
 var hostBuilder = new HostBuilder();
 
-hostBuilder.ConfigureServices((context, services) =>
+hostBuilder
+    .ConfigureAppConfiguration((context, builder) =>
+    {
+        builder.AddEnvironmentVariables();
+        // Map MSSQL_CONNECTION_STRING to Database:ConnectionString
+        builder.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("Database:ConnectionString", 
+                Environment.GetEnvironmentVariable("MSSQL_CONNECTION_STRING"))
+        ]);
+    })
+    .ConfigureServices((context, services) =>
 {
+    // Configure Database options with validation
+    services.AddSingleton<IValidateOptions<DatabaseOptions>, DatabaseOptionsValidator>();
+    services.AddOptionsWithValidateOnStart<DatabaseOptions>()
+        .BindConfiguration("Database");
+
     services.AddAkka("MyActorSystem", (builder, sp) =>
     {
         builder
