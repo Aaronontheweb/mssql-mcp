@@ -49,6 +49,3 @@ jobs:
       - name: "dotnet test"
         shell: bash
         run: dotnet test -c Release 
-
-      - name: "dotnet pack"
-        run: dotnet pack -c Release -o ./bin/nuget
