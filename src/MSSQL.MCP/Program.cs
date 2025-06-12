@@ -45,6 +45,11 @@ hostBuilder
     services.AddAkka("MSSQLMcpActorSystem", (builder, sp) =>
     {
         builder
+            .ConfigureLoggers(configBuilder =>
+            {
+                configBuilder.ClearLoggers();
+                configBuilder.AddLoggerFactory();
+            })
             .WithActors((system, registry, resolver) =>
             {
                 // Database validation actor - tests actual connection
