@@ -62,8 +62,11 @@ The easiest way to run the MCP server is using Docker with .NET's built-in conta
 # Clone the repository
 git clone https://github.com/your-org/mssql-mcp.git
 cd mssql-mcp
+```
 
-# Build the Docker image
+Build the Docker image
+
+```bash
 dotnet publish --os linux --arch x64 /t:PublishContainer
 ```
 
@@ -74,31 +77,6 @@ You can run the container directly if you wish, but it's probably best to let th
 docker run -it --rm \
   -e MSSQL_CONNECTION_STRING="Server=host.docker.internal;Database=MyDB;Trusted_Connection=true;" \
   mssql-mcp:latest
-```
-
-### Option 2: Local .NET Development
-
-#### Prerequisites
-- .NET 9.0 SDK
-- Access to a SQL Server instance
-
-#### Build and Run
-
-```bash
-# Clone and build
-git clone https://github.com/your-org/mssql-mcp.git
-cd mssql-mcp
-dotnet build
-
-# Set environment variable and run
-export MSSQL_CONNECTION_STRING="Server=localhost;Database=MyDB;Trusted_Connection=true;"
-dotnet run --project src/MSSQL.MCP
-```
-
-**Windows PowerShell:**
-```powershell
-$env:MSSQL_CONNECTION_STRING="Server=localhost;Database=MyDB;Trusted_Connection=true;"
-dotnet run --project src/MSSQL.MCP
 ```
 
 ## MCP Client Configuration
@@ -113,10 +91,16 @@ Add to your Cursor settings (`Cursor Settings > Features > Model Context Protoco
     "mssql": {
       "command": "docker",
       "args": [
-        "run", "-i", "--rm",
-        "-e", "MSSQL_CONNECTION_STRING=Server=localhost;Database=MyDB;Trusted_Connection=true;",
-        "mssql-mcp:latest"
-      ]
+          "run",
+          "-i",
+          "--rm",
+          "-e",
+          "MSSQL_CONNECTION_STRING",
+          "mssql-mcp:latest"
+      ],
+      "env": {
+          "MSSQL_CONNECTION_STRING": "Server=host.docker.internal,1533; Database=MyDb; User Id=myUser; Password=My(!)Password;TrustServerCertificate=true;"
+      }
     }
   }
 }
@@ -135,10 +119,16 @@ Add to your Claude Desktop configuration file:
     "mssql": {
       "command": "docker",
       "args": [
-        "run", "-i", "--rm",
-        "-e", "MSSQL_CONNECTION_STRING=Server=localhost;Database=MyDB;Trusted_Connection=true;",
-        "mssql-mcp:latest"
-      ]
+          "run",
+          "-i",
+          "--rm",
+          "-e",
+          "MSSQL_CONNECTION_STRING",
+          "mssql-mcp:latest"
+      ],
+      "env": {
+          "MSSQL_CONNECTION_STRING": "Server=host.docker.internal,1533; Database=MyDb; User Id=myUser; Password=My(!)Password;TrustServerCertificate=true;"
+      }
     }
   }
 }
@@ -160,6 +150,140 @@ If running the built binary directly instead of Docker:
   }
 }
 ```
+
+## Docker Networking Issues
+
+### Understanding the Problem
+
+When running the MCP server as a Docker container, you'll encounter networking challenges when trying to connect to SQL Server instances running on your host machine or in other containers. Docker containers are isolated from the host network by default, making `localhost` connections impossible.
+
+### Solutions by Scenario
+
+#### Scenario 1: SQL Server Running on Host Machine
+
+**Problem**: Your SQL Server is installed directly on Windows/macOS/Linux, and you want the containerized MCP server to connect to it.
+
+**Solution**: Use `host.docker.internal` instead of `localhost` in your connection string.
+
+```bash
+# ❌ This won't work - localhost refers to the container itself
+docker run -it --rm \
+  -e MSSQL_CONNECTION_STRING="Server=localhost;Database=MyDB;User Id=sa;Password=YourPassword123!;" \
+  mssql-mcp:latest
+
+# ✅ This works - host.docker.internal refers to the host machine
+docker run -it --rm \
+  -e MSSQL_CONNECTION_STRING="Server=host.docker.internal;Database=MyDB;User Id=sa;Password=YourPassword123!;" \
+  mssql-mcp:latest
+```
+
+**Updated MCP Client Configuration:**
+```json
+{
+  "mcpServers": {
+    "mssql": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "-e", "MSSQL_CONNECTION_STRING=Server=host.docker.internal;Database=MyDB;User Id=sa;Password=YourPassword123!;",
+        "mssql-mcp:latest"
+      ]
+    }
+  }
+}
+```
+
+#### Scenario 2: SQL Server in Another Docker Container
+
+**Solution**: Use Docker Compose with a custom network and reference containers by service name.
+
+```yaml
+version: '3.8'
+networks:
+  sql-network:
+    driver: bridge
+
+services:
+  mssql-mcp:
+    build: .
+    environment:
+      # Use the service name 'sqlserver' as the hostname
+      - MSSQL_CONNECTION_STRING=Server=sqlserver;Database=MyDatabase;User Id=sa;Password=YourPassword123!;
+    stdin_open: true
+    tty: true
+    networks:
+      - sql-network
+    depends_on:
+      - sqlserver
+      
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourPassword123!
+    networks:
+      - sql-network
+    ports:
+      - "1433:1433"  # Expose to host for external tools
+```
+
+#### Scenario 3: Linux with Host Network Mode
+
+**Linux Only Solution**: Use Docker's host networking mode for direct host network access.
+
+```bash
+# Linux only - shares the host's network stack
+docker run -it --rm --network host \
+  -e MSSQL_CONNECTION_STRING="Server=localhost;Database=MyDB;User Id=sa;Password=YourPassword123!;" \
+  mssql-mcp:latest
+```
+
+### Platform-Specific Considerations
+
+| Platform | host.docker.internal | Host Network Mode | Recommended Solution |
+|----------|---------------------|-------------------|---------------------|
+| **Windows** | ✅ Works out of box | ❌ Not supported | Use `host.docker.internal` |
+| **macOS** | ✅ Works out of box | ❌ Not supported | Use `host.docker.internal` |
+| **Linux** | ⚠️ Requires `--add-host` | ✅ Supported | Use `--network host` or `host.docker.internal` |
+
+**Linux `host.docker.internal` setup:**
+```bash
+docker run -it --rm \
+  --add-host=host.docker.internal:host-gateway \
+  -e MSSQL_CONNECTION_STRING="Server=host.docker.internal;Database=MyDB;User Id=sa;Password=YourPassword123!;" \
+  mssql-mcp:latest
+```
+
+### Testing Network Connectivity
+
+To verify your container can reach the SQL Server:
+
+```bash
+# Test from inside a running container
+docker exec -it <container_name> ping host.docker.internal
+
+# Test SQL Server port specifically
+docker run --rm -it mcr.microsoft.com/mssql-tools \
+  /bin/bash -c "sqlcmd -S host.docker.internal -U sa -P 'YourPassword123!' -Q 'SELECT @@VERSION'"
+```
+
+### Common Networking Troubleshooting
+
+1. **Connection Refused**: 
+   - Verify SQL Server is listening on all interfaces: `netstat -an | grep 1433`
+   - Check Windows Firewall allows Docker subnet access
+
+2. **DNS Resolution**:
+   - Test: `docker run --rm busybox nslookup host.docker.internal`
+   - Ensure Docker Desktop is running (for Windows/macOS)
+
+3. **Container-to-Container**:
+   - Verify both containers are on the same Docker network
+   - Use container service names, not localhost
+
+4. **Port Conflicts**:
+   - Ensure port 1433 isn't already bound by another process
+   - Check with: `netstat -tlnp | grep 1433`
 
 ## Usage Examples
 
