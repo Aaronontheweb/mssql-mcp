@@ -34,20 +34,13 @@ hostBuilder
                 // Database validation actor - tests actual connection
                 var dbValidationActorProps = resolver.Props<DatabaseValidationActor>();
                 var dbValidationActor = system.ActorOf(dbValidationActorProps, "database-validation");
+                
+                // We would normally register this actor in the registry, but since it dies immediately after validation,
+                // there's not much point in keeping it around.
             });
     });
 });
 
 var host = hostBuilder.Build();
-
-// Validate database connection on startup
-var connectionFactory = host.Services.GetRequiredService<ISqlConnectionFactory>();
-var isConnectionValid = await connectionFactory.ValidateConnectionAsync();
-if (!isConnectionValid)
-{
-    throw new InvalidOperationException("Unable to connect to the database with the provided connection string. Please verify MSSQL_CONNECTION_STRING is correct and the database is accessible.");
-}
-
-Console.WriteLine("✅ Database connection validated successfully");
 
 await host.RunAsync();
