@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using MSSQL.MCP.IntegrationTests.Infrastructure;
 using MSSQL.MCP.Tools;
 using Xunit;
@@ -17,7 +18,7 @@ public class SqlExecutionToolTests : IAsyncLifetime
     public SqlExecutionToolTests(DatabaseTestFixture fixture)
     {
         _fixture = fixture;
-        _tool = new SqlExecutionTool(fixture.ConnectionFactory);
+        _tool = new SqlExecutionTool(fixture.ConnectionFactory, NullLogger<SqlExecutionTool>.Instance);
     }
 
     public async Task InitializeAsync()
