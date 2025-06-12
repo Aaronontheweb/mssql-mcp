@@ -7,4 +7,5 @@
     <File Path="README.md" />
   </Folder>
   <Project Path="src/MSSQL.MCP/MSSQL.MCP.csproj" />
+  <Project Path="tests/MSSQL.MCP.IntegrationTests/MSSQL.MCP.IntegrationTests.csproj" />
 </Solution>

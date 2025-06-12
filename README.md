@@ -23,7 +23,6 @@ This MCP server provides AI agents with robust, reliable access to Microsoft SQL
 |------|-------------|
 | `execute_sql` | Execute any SQL query against the database |
 | `list_tables` | List all tables with schema, name, type, and row count |
-| `describe_table` | Get detailed table structure including columns, data types, keys, and constraints |
 | `list_schemas` | List all available schemas/databases in the SQL Server instance |
 
 ## Configuration
@@ -196,7 +195,7 @@ Once configured, AI agents can use natural language to interact with your databa
 → Uses `list_tables` tool
 
 **"Describe the structure of the Users table"**
-→ Uses `describe_table` with parameter "Users"
+→ Uses `execute_sql` with an INFORMATION_SCHEMA query
 
 **"Find all users created in the last 30 days"**
 → Uses `execute_sql` with appropriate SELECT query
