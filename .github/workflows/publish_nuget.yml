@@ -34,27 +34,21 @@ jobs:
       run: |
         ./build.ps1
 
-    - name: Create Packages
-      run:  dotnet pack /p:PackageVersion=${{ github.ref_name }} -c Release -o ./output
-
-    - name: Push Packages
-      run: dotnet nuget push "output/*.nupkg" -k ${{ secrets.NUGET_KEY }} -s https://api.nuget.org/v3/index.json
-
     - name: release
       uses: actions/create-release@v1
       id: create_release
       with:
         draft: false
         prerelease: false
-        release_name: 'Akka.Hosting ${{ github.ref_name }}'
+        release_name: 'mssql-mcp ${{ github.ref_name }}'
         tag_name: ${{ github.ref }}
         body_path: RELEASE_NOTES.md
       env:
         GITHUB_TOKEN: ${{ github.token }}
 
-    - name: Upload Release Asset
-      uses: AButler/upload-release-assets@v3.0
-      with:
-          repo-token: ${{ github.token }}
-          release-tag: ${{ github.ref_name }}
-          files: 'output/*.nupkg'
+   # - name: Upload Release Asset
+   #   uses: AButler/upload-release-assets@v3.0
+   #   with:
+   #       repo-token: ${{ github.token }}
+   #       release-tag: ${{ github.ref_name }}
+   #       files: 'output/*.nupkg'
