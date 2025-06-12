@@ -7,8 +7,11 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <VersionPrefix>0.1.0</VersionPrefix>
-    <PackageReleaseNotes>- Initial release of mssql-mcp</PackageReleaseNotes>
+    <VersionPrefix>0.1.1</VersionPrefix>
+    <PackageReleaseNotes>- Enhanced SqlExecutionTool with comprehensive query logging for better debugging and monitoring
+- Added T-SQL syntax validation to prevent AI agents from sending invalid non-SQL inputs
+- Improved tool descriptions with explicit T-SQL requirements and usage examples
+- Added structured error messages to guide AI agents on proper query formatting</PackageReleaseNotes>
   </PropertyGroup>
   <PropertyGroup>
     <!-- Visual Studio C# settings -->
