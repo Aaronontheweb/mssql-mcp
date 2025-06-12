@@ -58,9 +58,11 @@ The easiest way to run the MCP server is using Docker with .NET's built-in conta
 
 #### Build and Run with Docker
 
+Clone the repository
+
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/mssql-mcp.git
+git clone https://github.com/Aaronontheweb/mssql-mcp.git
 cd mssql-mcp
 ```
 
