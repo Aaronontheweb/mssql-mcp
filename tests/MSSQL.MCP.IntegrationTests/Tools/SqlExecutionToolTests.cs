@@ -133,12 +133,24 @@ public class SqlExecutionToolTests : IAsyncLifetime
     [Fact]
     public async Task ExecuteSql_InvalidQuery_ReturnsError()
     {
-        // Act
-        var result = await _tool.ExecuteSql("INVALID SQL QUERY");
+        // Act - Use valid T-SQL syntax but invalid operation to get SQL Server error
+        var result = await _tool.ExecuteSql("SELECT * FROM InvalidTable123");
 
         // Assert
         Assert.NotNull(result);
         Assert.Contains("SQL Error:", result);
+    }
+
+    [Fact]
+    public async Task ExecuteSql_NonSqlInput_ReturnsValidationError()
+    {
+        // Act - Use invalid T-SQL syntax to trigger validation error
+        var result = await _tool.ExecuteSql("INVALID SQL QUERY");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains("Error: Invalid T-SQL syntax", result);
+        Assert.Contains("This tool only accepts valid Microsoft SQL Server T-SQL statements", result);
     }
 
     [Fact]
