@@ -12,9 +12,9 @@
   </PropertyGroup>
   <PropertyGroup>
     <!-- Visual Studio C# settings -->
-    <NetStandardLibVersion>netstandard2.0</NetStandardLibVersion>
-    <NetLibVersion>net6.0</NetLibVersion>
-    <NetCoreTestVersion>net9.0</NetCoreTestVersion>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
     <Using Include="Akka.Event" />

@@ -6,5 +6,5 @@
     <File Path="NuGet.Config" />
     <File Path="README.md" />
   </Folder>
-  <Project Path="src/Akka.Console/Akka.Console.csproj" />
+  <Project Path="src/MSSQL.MCP/MSSQL.MCP.csproj" />
 </Solution>
