@@ -10,25 +10,18 @@ namespace MSSQL.MCP.IntegrationTests.Tools;
 /// with a real SQL Server database.
 /// </summary>
 [Collection("Database")]
-public class SqlExecutionToolTests : IAsyncLifetime
+public class SqlExecutionToolTests(DatabaseTestFixture fixture) : IAsyncLifetime
 {
-    private readonly DatabaseTestFixture _fixture;
-    private readonly SqlExecutionTool _tool;
-
-    public SqlExecutionToolTests(DatabaseTestFixture fixture)
-    {
-        _fixture = fixture;
-        _tool = new SqlExecutionTool(fixture.ConnectionFactory, NullLogger<SqlExecutionTool>.Instance);
-    }
+    private readonly SqlExecutionTool _tool = new(fixture.ConnectionFactory, NullLogger<SqlExecutionTool>.Instance);
 
     public async Task InitializeAsync()
     {
-        await _fixture.CreateTestDatabaseAsync();
+        await fixture.CreateTestDatabaseAsync();
     }
 
     public async Task DisposeAsync()
     {
-        await _fixture.CleanupTestDataAsync();
+        await fixture.CleanupTestDataAsync();
     }
 
     #region ExecuteSql Tests
