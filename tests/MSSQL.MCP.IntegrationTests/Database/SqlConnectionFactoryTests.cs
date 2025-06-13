@@ -45,7 +45,7 @@ public class SqlConnectionFactoryTests
     public async Task CreateOpenConnectionAsync_WithCancellation_HandlesCancellation()
     {
         using var cts = new CancellationTokenSource();
-        cts.Cancel();
+        await cts.CancelAsync();
 
         // Should handle cancellation token (TaskCanceledException inherits from OperationCanceledException)
         await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>

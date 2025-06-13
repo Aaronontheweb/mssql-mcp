@@ -251,7 +251,7 @@ public class SqlExecutionToolTests : IAsyncLifetime
         var task = _tool.ExecuteSql("WAITFOR DELAY '00:00:10'; SELECT 1", cts.Token);
         
         // Cancel immediately
-        cts.Cancel();
+        await cts.CancelAsync();
         
         // Should complete without throwing
         var result = await task;
@@ -262,7 +262,7 @@ public class SqlExecutionToolTests : IAsyncLifetime
     public async Task ListTables_WithCancellation_HandlesGracefully()
     {
         using var cts = new CancellationTokenSource();
-        cts.Cancel();
+        await cts.CancelAsync();
         
         // Should handle cancellation gracefully
         var result = await _tool.ListTables(cts.Token);
