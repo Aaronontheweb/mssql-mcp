@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Data;
 using System.Text.RegularExpressions;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
@@ -9,21 +8,12 @@ using MSSQL.MCP.Database;
 namespace MSSQL.MCP.Tools;
 
 [McpServerToolType]
-public class SqlExecutionTool
+public class SqlExecutionTool(ISqlConnectionFactory connectionFactory, ILogger<SqlExecutionTool> logger)
 {
-    private readonly ISqlConnectionFactory _connectionFactory;
-    private readonly ILogger<SqlExecutionTool> _logger;
-
     // Regex to detect valid T-SQL keywords at the beginning of queries
     private static readonly Regex ValidTSqlStartPattern = new(
         @"^\s*(SELECT|INSERT|UPDATE|DELETE|WITH|CREATE|ALTER|DROP|GRANT|REVOKE|EXEC|EXECUTE|DECLARE|SET|USE|BACKUP|RESTORE|TRUNCATE|MERGE)\s+",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
-
-    public SqlExecutionTool(ISqlConnectionFactory connectionFactory, ILogger<SqlExecutionTool> logger)
-    {
-        _connectionFactory = connectionFactory;
-        _logger = logger;
-    }
 
     [McpServerTool, Description(@"Execute T-SQL queries against the connected Microsoft SQL Server database. 
     
@@ -52,12 +42,12 @@ The query parameter must contain ONLY the T-SQL statement - no explanations, mar
         CancellationToken cancellationToken = default)
     {
         // Log the incoming query for debugging
-        _logger.LogInformation("Received SQL execution request. Query length: {QueryLength} characters", query?.Length ?? 0);
-        _logger.LogDebug("SQL Query received: {Query}", query);
+        logger.LogInformation("Received SQL execution request. Query length: {QueryLength} characters", query.Length );
+        logger.LogDebug("SQL Query received: {Query}", query);
 
         if (string.IsNullOrWhiteSpace(query))
         {
-            _logger.LogWarning("Empty or null query received");
+            logger.LogWarning("Empty or null query received");
             return "Error: SQL query cannot be empty";
         }
 
@@ -65,7 +55,7 @@ The query parameter must contain ONLY the T-SQL statement - no explanations, mar
         var trimmedQuery = query.Trim();
         if (!ValidTSqlStartPattern.IsMatch(trimmedQuery))
         {
-            _logger.LogWarning("Invalid T-SQL query received. Query does not start with valid T-SQL keyword: {QueryStart}", 
+            logger.LogWarning("Invalid T-SQL query received. Query does not start with valid T-SQL keyword: {QueryStart}", 
                 trimmedQuery.Length > 50 ? trimmedQuery[..50] + "..." : trimmedQuery);
             
             return @"Error: Invalid T-SQL syntax. This tool only accepts valid Microsoft SQL Server T-SQL statements.
@@ -92,11 +82,11 @@ Please provide only the T-SQL statement without explanations or formatting.";
 
         try
         {
-            _logger.LogInformation("Executing T-SQL query starting with: {QueryStart}", 
+            logger.LogInformation("Executing T-SQL query starting with: {QueryStart}", 
                 trimmedQuery.Length > 30 ? trimmedQuery[..30] + "..." : trimmedQuery);
 
-            using var connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
-            using var command = new SqlCommand(query, connection);
+            await using var connection = await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+            await using var command = new SqlCommand(query, connection);
             
             // Determine if this is a SELECT query or a command
             var isSelectQuery = trimmedQuery.StartsWith("SELECT", StringComparison.OrdinalIgnoreCase) ||
@@ -105,9 +95,9 @@ Please provide only the T-SQL statement without explanations or formatting.";
             if (isSelectQuery)
             {
                 // Handle SELECT queries - return data
-                using var reader = await command.ExecuteReaderAsync(cancellationToken);
+                await using var reader = await command.ExecuteReaderAsync(cancellationToken);
                 var result = await FormatQueryResults(reader, cancellationToken);
-                _logger.LogInformation("SELECT query executed successfully");
+                logger.LogInformation("SELECT query executed successfully");
                 return result;
             }
             else
@@ -115,18 +105,18 @@ Please provide only the T-SQL statement without explanations or formatting.";
                 // Handle INSERT/UPDATE/DELETE/DDL - return affected rows
                 var rowsAffected = await command.ExecuteNonQueryAsync(cancellationToken);
                 var result = $"Query executed successfully. Rows affected: {rowsAffected}";
-                _logger.LogInformation("Non-SELECT query executed successfully. Rows affected: {RowsAffected}", rowsAffected);
+                logger.LogInformation("Non-SELECT query executed successfully. Rows affected: {RowsAffected}", rowsAffected);
                 return result;
             }
         }
         catch (SqlException ex)
         {
-            _logger.LogError(ex, "SQL execution failed with SQL error: {SqlErrorMessage}", ex.Message);
+            logger.LogError(ex, "SQL execution failed with SQL error: {SqlErrorMessage}", ex.Message);
             return $"SQL Error: {ex.Message}";
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "SQL execution failed with general error: {ErrorMessage}", ex.Message);
+            logger.LogError(ex, "SQL execution failed with general error: {ErrorMessage}", ex.Message);
             return $"Error: {ex.Message}";
         }
     }
@@ -136,7 +126,7 @@ Please provide only the T-SQL statement without explanations or formatting.";
     {
         try
         {
-            using var connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+            await using var connection = await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
             
             var query = @"
                 SELECT 
@@ -158,8 +148,8 @@ Please provide only the T-SQL statement without explanations or formatting.";
                 WHERE t.TABLE_TYPE = 'BASE TABLE'
                 ORDER BY t.TABLE_SCHEMA, t.TABLE_NAME";
 
-            using var command = new SqlCommand(query, connection);
-            using var reader = await command.ExecuteReaderAsync(cancellationToken);
+            await using var command = new SqlCommand(query, connection);
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
             
             return await FormatQueryResults(reader, cancellationToken);
         }
@@ -174,7 +164,7 @@ Please provide only the T-SQL statement without explanations or formatting.";
     {
         try
         {
-            using var connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+            await using var connection = await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
             
             var query = @"
                 SELECT 
@@ -185,9 +175,8 @@ Please provide only the T-SQL statement without explanations or formatting.";
                     DEFAULT_CHARACTER_SET_NAME
                 FROM INFORMATION_SCHEMA.SCHEMATA
                 ORDER BY SCHEMA_NAME";
-
-            using var command = new SqlCommand(query, connection);
-            using var reader = await command.ExecuteReaderAsync(cancellationToken);
+            await using var command = new SqlCommand(query, connection);
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
             
             return await FormatQueryResults(reader, cancellationToken);
         }
@@ -225,7 +214,7 @@ Please provide only the T-SQL statement without explanations or formatting.";
             for (int i = 0; i < columnCount; i++)
             {
                 row[i] = reader.IsDBNull(i) ? "NULL" : reader.GetValue(i);
-                var valueLength = row[i]?.ToString()?.Length ?? 4;
+                var valueLength = row[i].ToString()?.Length ?? 4;
                 columnWidths[i] = Math.Max(columnWidths[i], valueLength);
             }
             rows.Add(row);
@@ -239,7 +228,7 @@ Please provide only the T-SQL statement without explanations or formatting.";
         foreach (var row in rows)
         {
             result.AppendLine(string.Join(" | ", row.Select((value, i) => 
-                (value?.ToString() ?? "NULL").PadRight(columnWidths[i]))));
+                (value.ToString() ?? "NULL").PadRight(columnWidths[i]))));
         }
 
         result.AppendLine($"\n({rows.Count} row(s) returned)");

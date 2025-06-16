@@ -3,14 +3,9 @@ using MSSQL.MCP.Configuration;
 
 namespace MSSQL.MCP.Database;
 
-public class SqlConnectionFactory : ISqlConnectionFactory
+public class SqlConnectionFactory(IOptions<DatabaseOptions> databaseOptions) : ISqlConnectionFactory
 {
-    private readonly string _connectionString;
-
-    public SqlConnectionFactory(IOptions<DatabaseOptions> databaseOptions)
-    {
-        _connectionString = databaseOptions.Value.ConnectionString;
-    }
+    private readonly string _connectionString = databaseOptions.Value.ConnectionString;
 
     public SqlConnection CreateConnection()
     {

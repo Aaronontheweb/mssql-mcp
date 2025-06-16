@@ -1,4 +1,3 @@
-using MSSQL.MCP.Database;
 using MSSQL.MCP.IntegrationTests.Infrastructure;
 using Microsoft.Data.SqlClient;
 using Xunit;
@@ -9,32 +8,25 @@ namespace MSSQL.MCP.IntegrationTests.Database;
 /// Integration tests for SqlConnectionFactory to validate connection handling.
 /// </summary>
 [Collection("Database")]
-public class SqlConnectionFactoryTests
+public class SqlConnectionFactoryTests(DatabaseTestFixture fixture)
 {
-    private readonly DatabaseTestFixture _fixture;
-
-    public SqlConnectionFactoryTests(DatabaseTestFixture fixture)
-    {
-        _fixture = fixture;
-    }
-
     [Fact]
     public void CreateConnection_ReturnsValidConnection()
     {
         // Act
-        using var connection = _fixture.ConnectionFactory.CreateConnection();
+        using var connection = fixture.ConnectionFactory.CreateConnection();
 
         // Assert
         Assert.NotNull(connection);
         Assert.IsType<SqlConnection>(connection);
-        Assert.Equal(_fixture.ConnectionString, connection.ConnectionString);
+        Assert.Equal(fixture.ConnectionString, connection.ConnectionString);
     }
 
     [Fact]
     public async Task CreateOpenConnectionAsync_ReturnsOpenConnection()
     {
         // Act
-        using var connection = await _fixture.ConnectionFactory.CreateOpenConnectionAsync();
+        await using var connection = await fixture.ConnectionFactory.CreateOpenConnectionAsync();
 
         // Assert
         Assert.NotNull(connection);
@@ -45,12 +37,12 @@ public class SqlConnectionFactoryTests
     public async Task CreateOpenConnectionAsync_WithCancellation_HandlesCancellation()
     {
         using var cts = new CancellationTokenSource();
-        cts.Cancel();
+        await cts.CancelAsync();
 
         // Should handle cancellation token (TaskCanceledException inherits from OperationCanceledException)
         await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
         {
-            using var connection = await _fixture.ConnectionFactory.CreateOpenConnectionAsync(cts.Token);
+            await using var connection = await fixture.ConnectionFactory.CreateOpenConnectionAsync(cts.Token);
         });
     }
 
@@ -58,7 +50,7 @@ public class SqlConnectionFactoryTests
     public async Task ValidateConnectionAsync_WithValidConnection_ReturnsTrue()
     {
         // Act
-        var isValid = await _fixture.ConnectionFactory.ValidateConnectionAsync();
+        var isValid = await fixture.ConnectionFactory.ValidateConnectionAsync();
 
         // Assert
         Assert.True(isValid);
@@ -69,7 +61,7 @@ public class SqlConnectionFactoryTests
     {
         // Act
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-        var isValid = await _fixture.ConnectionFactory.ValidateConnectionAsync();
+        var isValid = await fixture.ConnectionFactory.ValidateConnectionAsync();
         stopwatch.Stop();
 
         // Assert
@@ -87,8 +79,8 @@ public class SqlConnectionFactoryTests
         {
             tasks.Add(Task.Run(async () =>
             {
-                using var connection = await _fixture.ConnectionFactory.CreateOpenConnectionAsync();
-                using var command = new SqlCommand("SELECT 1", connection);
+                await using var connection = await fixture.ConnectionFactory.CreateOpenConnectionAsync();
+                await using var command = new SqlCommand("SELECT 1", connection);
                 var result = await command.ExecuteScalarAsync();
                 Assert.Equal(1, result);
             }));

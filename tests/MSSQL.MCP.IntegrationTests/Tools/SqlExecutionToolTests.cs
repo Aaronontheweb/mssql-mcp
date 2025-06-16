@@ -10,25 +10,18 @@ namespace MSSQL.MCP.IntegrationTests.Tools;
 /// with a real SQL Server database.
 /// </summary>
 [Collection("Database")]
-public class SqlExecutionToolTests : IAsyncLifetime
+public class SqlExecutionToolTests(DatabaseTestFixture fixture) : IAsyncLifetime
 {
-    private readonly DatabaseTestFixture _fixture;
-    private readonly SqlExecutionTool _tool;
-
-    public SqlExecutionToolTests(DatabaseTestFixture fixture)
-    {
-        _fixture = fixture;
-        _tool = new SqlExecutionTool(fixture.ConnectionFactory, NullLogger<SqlExecutionTool>.Instance);
-    }
+    private readonly SqlExecutionTool _tool = new(fixture.ConnectionFactory, NullLogger<SqlExecutionTool>.Instance);
 
     public async Task InitializeAsync()
     {
-        await _fixture.CreateTestDatabaseAsync();
+        await fixture.CreateTestDatabaseAsync();
     }
 
     public async Task DisposeAsync()
     {
-        await _fixture.CleanupTestDataAsync();
+        await fixture.CleanupTestDataAsync();
     }
 
     #region ExecuteSql Tests
@@ -251,7 +244,7 @@ public class SqlExecutionToolTests : IAsyncLifetime
         var task = _tool.ExecuteSql("WAITFOR DELAY '00:00:10'; SELECT 1", cts.Token);
         
         // Cancel immediately
-        cts.Cancel();
+        await cts.CancelAsync();
         
         // Should complete without throwing
         var result = await task;
@@ -262,7 +255,7 @@ public class SqlExecutionToolTests : IAsyncLifetime
     public async Task ListTables_WithCancellation_HandlesGracefully()
     {
         using var cts = new CancellationTokenSource();
-        cts.Cancel();
+        await cts.CancelAsync();
         
         // Should handle cancellation gracefully
         var result = await _tool.ListTables(cts.Token);

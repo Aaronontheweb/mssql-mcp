@@ -1,5 +1,4 @@
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using MSSQL.MCP.Configuration;
 using MSSQL.MCP.Database;
@@ -65,7 +64,7 @@ public class DatabaseTestFixture : IAsyncLifetime
     /// </summary>
     public async Task CreateTestDatabaseAsync()
     {
-        using var connection = await ConnectionFactory.CreateOpenConnectionAsync();
+        await using var connection = await ConnectionFactory.CreateOpenConnectionAsync();
         
         // Create test schema and tables
         var setupSql = @"
@@ -131,7 +130,7 @@ public class DatabaseTestFixture : IAsyncLifetime
             END;
         ";
         
-        using var command = new Microsoft.Data.SqlClient.SqlCommand(setupSql, connection);
+        await using var command = new Microsoft.Data.SqlClient.SqlCommand(setupSql, connection);
         await command.ExecuteNonQueryAsync();
     }
     
@@ -140,7 +139,7 @@ public class DatabaseTestFixture : IAsyncLifetime
     /// </summary>
     public async Task CleanupTestDataAsync()
     {
-        using var connection = await ConnectionFactory.CreateOpenConnectionAsync();
+        await using var connection = await ConnectionFactory.CreateOpenConnectionAsync();
         
         var cleanupSql = @"
             DELETE FROM dbo.Orders;
@@ -153,7 +152,7 @@ public class DatabaseTestFixture : IAsyncLifetime
             DBCC CHECKIDENT ('TestSchema.Products', RESEED, 0);
         ";
         
-        using var command = new Microsoft.Data.SqlClient.SqlCommand(cleanupSql, connection);
+        await using var command = new Microsoft.Data.SqlClient.SqlCommand(cleanupSql, connection);
         await command.ExecuteNonQueryAsync();
     }
 } 
