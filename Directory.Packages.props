@@ -2,19 +2,19 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <!-- Nuget package versions -->
-    <AkkaHostingVersion>1.5.44</AkkaHostingVersion>
+    <AkkaHostingVersion>1.5.45</AkkaHostingVersion>
   </PropertyGroup>
   <!-- App dependencies -->
   <ItemGroup>
     <PackageVersion Include="Akka.Hosting" Version="$(AkkaHostingVersion)" />
     <PackageVersion Include="Microsoft.Data.SqlClient" Version="6.0.2" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="9.0.6" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="9.0.7" />
     <PackageVersion Include="ModelContextProtocol" Version="0.2.0-preview.3" />
   </ItemGroup>
   <!-- Test dependencies -->
   <ItemGroup>
     <PackageVersion Include="xunit" Version="2.9.3" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.1" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.2" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageVersion Include="Testcontainers.MSSql" Version="4.6.0" />
   </ItemGroup>
