@@ -2,7 +2,7 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <!-- Nuget package versions -->
-    <AkkaHostingVersion>1.5.45</AkkaHostingVersion>
+    <AkkaHostingVersion>1.5.46</AkkaHostingVersion>
   </PropertyGroup>
   <!-- App dependencies -->
   <ItemGroup>
@@ -14,7 +14,7 @@
   <!-- Test dependencies -->
   <ItemGroup>
     <PackageVersion Include="xunit" Version="2.9.3" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.2" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.3" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageVersion Include="Testcontainers.MSSql" Version="4.6.0" />
   </ItemGroup>
