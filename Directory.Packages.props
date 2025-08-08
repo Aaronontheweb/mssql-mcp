@@ -8,7 +8,7 @@
   <ItemGroup>
     <PackageVersion Include="Akka.Hosting" Version="$(AkkaHostingVersion)" />
     <PackageVersion Include="Microsoft.Data.SqlClient" Version="6.1.0" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="9.0.7" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="9.0.8" />
     <PackageVersion Include="ModelContextProtocol" Version="0.2.0-preview.3" />
   </ItemGroup>
   <!-- Test dependencies -->
