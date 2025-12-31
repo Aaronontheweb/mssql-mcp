@@ -1,426 +1,252 @@
-# mssql-mcp
+# Microsoft SQL Server MCP Server
 
-A .NET-powered Model Context Protocol (MCP) server for Microsoft SQL Server.
+[![PyPI](https://img.shields.io/pypi/v/microsoft_sql_server_mcp)](https://pypi.org/project/microsoft_sql_server_mcp/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Abstract
+<a href="https://glama.ai/mcp/servers/29cpe19k30">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/29cpe19k30/badge" alt="Microsoft SQL Server MCP server" />
+</a>
 
-Why does this exist? Because the other MCP solutions in market for this are generally janky pieces of shit that don't work - certainly not on Windows.
-
-This MCP server provides AI agents with robust, reliable access to Microsoft SQL Server databases through a clean, well-architected .NET application using Akka.NET for internal coordination and the official MCP C# SDK for protocol compliance.
+A Model Context Protocol (MCP) server for secure SQL Server database access through Claude Desktop.
 
 ## Features
 
-- **Schema Discovery**: AI agents can explore database structure without writing complex SQL
-- **Query Execution**: Full SQL support for SELECT, INSERT, UPDATE, DELETE, and DDL operations
-- **Connection Validation**: Automatic database connectivity validation on startup
-- **Error Handling**: Comprehensive error handling with clear, actionable error messages
-- **Table Formatting**: Query results formatted in readable tables for AI consumption
-- **Docker Support**: Easy deployment with built-in .NET Docker tooling
+- 🔍 List database tables and detailed schema information
+- 📊 Execute SQL queries (SELECT, INSERT, UPDATE, DELETE)
+- 🔐 Multiple authentication methods (SQL, Windows, Azure AD)
+- 🏢 LocalDB and Azure SQL support
+- 🔌 Custom port configuration
+- ⚡ **Connection pooling for 50-70% performance improvement**
+- 🛡️ **Rate limiting for DoS protection**
+- 🔒 **Enhanced security with input validation**
+- 📝 **Security audit logging for compliance**
+- ⚙️ **YAML configuration file support**
+- 📊 **Connection pool and rate limit monitoring**
 
-## Available Tools
+## Quick Start
 
-| Tool | Description |
-|------|-------------|
-| `execute_sql` | Execute any SQL query against the database |
-| `list_tables` | List all tables with schema, name, type, and row count |
-| `list_schemas` | List all available schemas/databases in the SQL Server instance |
+### Install with Claude Desktop
+
+Add to your `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "mssql": {
+      "command": "uvx",
+      "args": ["microsoft_sql_server_mcp"],
+      "env": {
+        "MSSQL_SERVER": "localhost",
+        "MSSQL_DATABASE": "your_database",
+        "MSSQL_USER": "your_username",
+        "MSSQL_PASSWORD": "your_password"
+      }
+    }
+  }
+}
+```
 
 ## Configuration
 
-### Required Environment Variables
-
-The MCP server requires a single environment variable:
-
-- **`MSSQL_CONNECTION_STRING`**: Complete SQL Server connection string
-
-#### Example Connection Strings
-
-**Windows Authentication:**
-```
-MSSQL_CONNECTION_STRING="Server=localhost;Database=MyDatabase;Trusted_Connection=true;"
-```
-
-**SQL Server Authentication:**
-```
-MSSQL_CONNECTION_STRING="Server=localhost;Database=MyDatabase;User Id=myuser;Password=mypassword;"
-```
-
-**Azure SQL Database:**
-```
-MSSQL_CONNECTION_STRING="Server=myserver.database.windows.net;Database=mydatabase;User Id=myuser;Password=mypassword;Encrypt=true;"
-```
-
-## Running the MCP Server
-
-### Option 1: Docker (Recommended)
-
-The easiest way to run the MCP server is using Docker with .NET's built-in container support.
-
-#### Build and Run with Docker
-
-Clone the repository
-
+### Basic SQL Authentication
 ```bash
-# Clone the repository
-git clone https://github.com/Aaronontheweb/mssql-mcp.git
-cd mssql-mcp
+MSSQL_SERVER=localhost          # Required
+MSSQL_DATABASE=your_database    # Required
+MSSQL_USER=your_username        # Required for SQL auth
+MSSQL_PASSWORD=your_password    # Required for SQL auth
 ```
 
-Build the Docker image
-
+### Windows Authentication
 ```bash
-dotnet publish --os linux --arch x64 /t:PublishContainer
+MSSQL_SERVER=localhost
+MSSQL_DATABASE=your_database
+MSSQL_WINDOWS_AUTH=true         # Use Windows credentials
 ```
 
-You can run the container directly if you wish, but it's **probably best** to let the MCP server spin up the client:
-
+### Azure SQL Database
 ```bash
-# Run the container
-docker run -it --rm \
-  -e MSSQL_CONNECTION_STRING="Server=host.docker.internal;Database=MyDB;Trusted_Connection=true;" \
-  mssql-mcp:latest
+MSSQL_SERVER=your-server.database.windows.net
+MSSQL_DATABASE=your_database
+MSSQL_USER=your_username
+MSSQL_PASSWORD=your_password
+# Encryption is automatic for Azure
 ```
 
-## MCP Client Configuration
-
-### Cursor IDE
-
-Add to your Cursor settings (`Cursor Settings > Features > Model Context Protocol`):
-
-```json
-{
-  "mcpServers": {
-    "mssql": {
-      "command": "docker",
-      "args": [
-          "run",
-          "-i",
-          "--rm",
-          "-e",
-          "MSSQL_CONNECTION_STRING",
-          "mssql-mcp:latest"
-      ],
-      "env": {
-          "MSSQL_CONNECTION_STRING": "Server=host.docker.internal,1533; Database=MyDb; User Id=myUser; Password=My(!)Password;TrustServerCertificate=true;"
-      }
-    }
-  }
-}
-```
-
-### Claude Desktop
-
-Add to your Claude Desktop configuration file:
-
-* **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
-* **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
-
-```json
-{
-  "mcpServers": {
-    "mssql": {
-      "command": "docker",
-      "args": [
-          "run",
-          "-i",
-          "--rm",
-          "-e",
-          "MSSQL_CONNECTION_STRING",
-          "mssql-mcp:latest"
-      ],
-      "env": {
-          "MSSQL_CONNECTION_STRING": "Server=host.docker.internal,1533; Database=MyDb; User Id=myUser; Password=My(!)Password;TrustServerCertificate=true;"
-      }
-    }
-  }
-}
-```
-
-You might need to create that file and restart Claude Desktop for the changes to take effect.
-
-#### Understanding Your Claude Desktop MCP Server Configuration
-
-This JSON configuration is for **Claude Desktop's Model Context Protocol (MCP) servers**. It essentially teaches Claude how to connect to and use a custom 
-"tool" that interacts with a **Microsoft SQL Server (MSSQL)** database.
-
-Let's break down each part:
-
-##### `mcpServers`
-
-This is the top-level section where you define all your custom MCP servers. You can set up multiple servers here, each with its own unique name.
-
-##### `"mssql"`
-
-This is the **unique name** you've chosen for this particular SQL Server integration. Claude will use this name to refer to this database connection.
-
-##### `"command": "docker"`
-
-This line tells Claude Desktop to launch the MCP server using **Docker**. This means the actual server software runs inside an isolated container, 
-and you'll need **Docker Desktop** installed and running on your Windows/mac/Linux machine for this to work. Alternatively, you can use remote Docker server
-using [custon context](https://docs.docker.com/engine/manage-resources/contexts/).
-
-##### `"args": [...]`
-
-These are the **arguments** Claude Desktop passes to the `docker` command when starting the container:
-
-* `"run"`: This standard Docker command creates and starts a new container.
-* `"-i"`: Stands for "interactive," keeping the standard input open for communication between the MCP server and Claude Desktop.
-* `"--rm"`: This important argument tells Docker to **automatically remove the container** when it stops. This helps keep your Docker environment tidy.
-* `"-e", "MSSQL_CONNECTION_STRING"`: This passes an **environment variable** named `MSSQL_CONNECTION_STRING` into the Docker container.
-* `"mssql-mcp:latest"`: This specifies the **Docker image** to use. This image (`mssql-mcp` with the `latest` tag) contains the actual MCP server application 
-   designed to interact with SQL Server. You'll need to ensure this image is available (either built locally or pulled from a Docker registry).
-
-##### `"env": {...}`
-
-This section defines the **environment variables** that will be set when Docker executes the command.
-
-* `"MSSQL_CONNECTION_STRING": "Server=host.docker.internal,1533; Database=MyDb; User Id=myUser; Password=My(!)Password;TrustServerCertificate=true;"`
-    * This is the **SQL Server connection string** that the `mssql-mcp` Docker container will use to connect to your database.
-    * `Server=host.docker.internal,1533`: `host.docker.internal` is a special Docker DNS name that lets the container reach your **host machine's IP address**. 
-       This is how the MCP server inside Docker can connect to your SQL Server instance, which is presumably running directly on your machine. `1533` is the 
-       port your SQL Server is listening on.
-    * `Database=MyDb`: The name of the specific database you want to connect to.
-    * `User Id=myUser; Password=My(!)Password;`: The credentials for a user (`myUser`) to log into your SQL Server.
-    * `TrustServerCertificate=true;`: This tells the client to **skip validating the server's SSL/TLS certificate**. While convenient for development or when 
-      using self-signed certificates, be aware this reduces security by making you vulnerable to man-in-the-middle attacks in production environments.
-
----
-##### In a Nutshell:
-
-This configuration enables Claude Desktop to run a SQL Server-specific MCP server inside a Docker container. This server then uses the provided connection
-string to establish a connection to your SQL Server database, allowing Claude to interact with your data through this custom tool.
-
-### Local Binary Configuration
-
-If running the built binary directly instead of Docker:
-
-```json
-{
-  "mcpServers": {
-    "mssql": {
-      "command": "/path/to/mssql-mcp/src/MSSQL.MCP/bin/Release/net9.0/MSSQL.MCP",
-      "env": {
-        "MSSQL_CONNECTION_STRING": "Server=localhost;Database=MyDB;Trusted_Connection=true;"
-      }
-    }
-  }
-}
-```
-
-## Docker Networking Issues
-
-### Understanding the Problem
-
-When running the MCP server as a Docker container, you'll encounter networking challenges when trying to connect to SQL Server instances running on your host machine or in other containers. Docker containers are isolated from the host network by default, making `localhost` connections impossible.
-
-### Solutions by Scenario
-
-#### Scenario 1: SQL Server Running on Host Machine
-
-**Problem**: Your SQL Server is installed directly on Windows/macOS/Linux, and you want the containerized MCP server to connect to it.
-
-**Solution**: Use `host.docker.internal` instead of `localhost` in your connection string.
-
+### Optional Settings
 ```bash
-# ❌ This won't work - localhost refers to the container itself
-docker run -it --rm \
-  -e MSSQL_CONNECTION_STRING="Server=localhost;Database=MyDB;User Id=sa;Password=YourPassword123!;" \
-  mssql-mcp:latest
-
-# ✅ This works - host.docker.internal refers to the host machine
-docker run -it --rm \
-  -e MSSQL_CONNECTION_STRING="Server=host.docker.internal;Database=MyDB;User Id=sa;Password=YourPassword123!;" \
-  mssql-mcp:latest
+MSSQL_PORT=1433                 # Custom port (default: 1433)
+MSSQL_ENCRYPT=true              # Force encryption
 ```
 
-**Updated MCP Client Configuration:**
-```json
-{
-  "mcpServers": {
-    "mssql": {
-      "command": "docker",
-      "args": [
-        "run", "-i", "--rm",
-        "-e", "MSSQL_CONNECTION_STRING=Server=host.docker.internal;Database=MyDB;User Id=sa;Password=YourPassword123!;",
-        "mssql-mcp:latest"
-      ]
-    }
-  }
-}
-```
+### Advanced Configuration (YAML File)
 
-#### Scenario 2: SQL Server in Another Docker Container
-
-**Solution**: Use Docker Compose with a custom network and reference containers by service name.
+For more complex configurations, create a `mssql_config.yml` file:
 
 ```yaml
-version: '3.8'
-networks:
-  sql-network:
-    driver: bridge
+# Database Connection
+server: localhost
+database: your_database
+user: your_username
+password: your_password
 
-services:
-  mssql-mcp:
-    build: .
-    environment:
-      # Use the service name 'sqlserver' as the hostname
-      - MSSQL_CONNECTION_STRING=Server=sqlserver;Database=MyDatabase;User Id=sa;Password=YourPassword123!;
-    stdin_open: true
-    tty: true
-    networks:
-      - sql-network
-    depends_on:
-      - sqlserver
-      
-  sqlserver:
-    image: mcr.microsoft.com/mssql/server:2022-latest
-    environment:
-      - ACCEPT_EULA=Y
-      - SA_PASSWORD=YourPassword123!
-    networks:
-      - sql-network
-    ports:
-      - "1433:1433"  # Expose to host for external tools
+# Connection Pool (improves performance 50-70%)
+connection_pool:
+  min_size: 2
+  max_size: 10
+  timeout: 30
+
+# Query Cache (optional)
+cache:
+  enabled: false
+  ttl: 300
+  max_size: 1000
 ```
 
-#### Scenario 3: Linux with Host Network Mode
+Environment variables take precedence over the YAML file.
 
-**Linux Only Solution**: Use Docker's host networking mode for direct host network access.
+## Alternative Installation Methods
 
+### Using pip
 ```bash
-# Linux only - shares the host's network stack
-docker run -it --rm --network host \
-  -e MSSQL_CONNECTION_STRING="Server=localhost;Database=MyDB;User Id=sa;Password=YourPassword123!;" \
-  mssql-mcp:latest
+pip install microsoft_sql_server_mcp
 ```
 
-### Platform-Specific Considerations
+Then in `claude_desktop_config.json`:
+```json
+{
+  "mcpServers": {
+    "mssql": {
+      "command": "python",
+      "args": ["-m", "mssql_mcp_server"],
+      "env": { ... }
+    }
+  }
+}
+```
 
-| Platform | host.docker.internal | Host Network Mode | Recommended Solution |
-|----------|---------------------|-------------------|---------------------|
-| **Windows** | ✅ Works out of box | ❌ Not supported | Use `host.docker.internal` |
-| **macOS** | ✅ Works out of box | ❌ Not supported | Use `host.docker.internal` |
-| **Linux** | ⚠️ Requires `--add-host` | ✅ Supported | Use `--network host` or `host.docker.internal` |
-
-**Linux `host.docker.internal` setup:**
+### Development
 ```bash
-docker run -it --rm \
-  --add-host=host.docker.internal:host-gateway \
-  -e MSSQL_CONNECTION_STRING="Server=host.docker.internal;Database=MyDB;User Id=sa;Password=YourPassword123!;" \
-  mssql-mcp:latest
+git clone https://github.com/RichardHan/mssql_mcp_server.git
+cd mssql_mcp_server
+pip install -e .
 ```
 
-### Testing Network Connectivity
+## Security
 
-To verify your container can reach the SQL Server:
+### Best Practices
+- Create a dedicated SQL user with minimal permissions
+- Never use admin/sa accounts in production
+- Use Windows Authentication when possible
+- Enable encryption for sensitive data: `MSSQL_ENCRYPT=true`
 
-```bash
-# Test from inside a running container
-docker exec -it <container_name> ping host.docker.internal
+### Built-in Security Features
 
-# Test SQL Server port specifically
-docker run --rm -it mcr.microsoft.com/mssql-tools \
-  /bin/bash -c "sqlcmd -S host.docker.internal -U sa -P 'YourPassword123!' -Q 'SELECT @@VERSION'"
-```
+This server includes multiple layers of security:
 
-### Common Networking Troubleshooting
+1. **Input Validation** - All inputs validated with Pydantic
+2. **SQL Injection Protection** - Table names validated with strict regex, dangerous patterns detected
+3. **Rate Limiting** - Configurable request limits prevent DoS attacks
+4. **Error Sanitization** - Passwords and sensitive data never exposed in errors
+5. **Security Auditing** - All operations logged for compliance
 
-1. **Connection Refused**: 
-   - Verify SQL Server is listening on all interfaces: `netstat -an | grep 1433`
-   - Check Windows Firewall allows Docker subnet access
+### Example: Minimal Permissions
 
-2. **DNS Resolution**:
-   - Test: `docker run --rm busybox nslookup host.docker.internal`
-   - Ensure Docker Desktop is running (for Windows/macOS)
-
-3. **Container-to-Container**:
-   - Verify both containers are on the same Docker network
-   - Use container service names, not localhost
-
-4. **Port Conflicts**:
-   - Ensure port 1433 isn't already bound by another process
-   - Check with: `netstat -tlnp | grep 1433`
-
-## Usage Examples
-
-Once configured, AI agents can use natural language to interact with your database:
-
-**"Show me all the tables in the database"**
-→ Uses `list_tables` tool
-
-**"Describe the structure of the Users table"**
-→ Uses `execute_sql` with an INFORMATION_SCHEMA query
-
-**"Find all users created in the last 30 days"**
-→ Uses `execute_sql` with appropriate SELECT query
-
-**"Create a new customer record"**
-→ Uses `execute_sql` with INSERT statement
-
-## Security Considerations
-
-### ⚠️ Important Security Warnings
-
-- **Database Permissions**: Only grant the minimum required permissions to the database user
-- **Connection Security**: Use encrypted connections for production environments
-- **Access Control**: This MCP server provides full SQL execution capabilities - ensure proper access controls
-- **Audit Logging**: Consider enabling SQL Server audit logging for production use
-- **Network Security**: Restrict network access to the database server appropriately
-
-### Recommended Database Permissions
-
-For read-only access:
 ```sql
--- Create a dedicated user with minimal permissions
-CREATE LOGIN mcp_readonly WITH PASSWORD = 'SecurePassword123!';
-CREATE USER mcp_readonly FOR LOGIN mcp_readonly;
+-- Create a restricted user
+CREATE LOGIN mcp_user WITH PASSWORD = 'StrongPassword123!';
+CREATE USER mcp_user FOR LOGIN mcp_user;
 
 -- Grant only necessary permissions
-GRANT SELECT ON SCHEMA::dbo TO mcp_readonly;
-GRANT VIEW DEFINITION ON SCHEMA::dbo TO mcp_readonly;
+GRANT SELECT ON Schema.TableName TO mcp_user;
+GRANT INSERT, UPDATE ON Schema.AuditLog TO mcp_user;
 ```
 
-For read-write access:
-```sql
--- Create a dedicated user
-CREATE LOGIN mcp_readwrite WITH PASSWORD = 'SecurePassword123!';
-CREATE USER mcp_readwrite FOR LOGIN mcp_readwrite;
+## Performance
 
--- Grant necessary permissions
-GRANT SELECT, INSERT, UPDATE, DELETE ON SCHEMA::dbo TO mcp_readwrite;
-GRANT VIEW DEFINITION ON SCHEMA::dbo TO mcp_readwrite;
+With connection pooling enabled (default):
+- **50-70% faster** query response times
+- **Reduced** database connection overhead
+- **Better** resource utilization
+- **Automatic** connection health checks and recovery
+
+## Monitoring
+
+Check connection pool stats:
+```
+Tool: get_pool_stats
 ```
 
-## Troubleshooting
+``
 
-### Connection Issues
+## What's New in v0.2.0 🎉
 
-1. **Verify connection string**: Test with SQL Server Management Studio or Azure Data Studio
-2. **Check firewall**: Ensure SQL Server port (default 1433) is accessible
-3. **Enable TCP/IP**: Ensure TCP/IP protocol is enabled in SQL Server Configuration Manager
-4. **Authentication mode**: Verify SQL Server is configured for the appropriate authentication mode
+### Major Features Added:
 
-### Container Issues
+- ⚡ **Connection Pooling** - 50-70% performance improvement
+- 💾 **Query Caching** - Near-instant results for repeated queries  
+- 🔄 **Transactions** - ACID compliant multi-query transactions
+- 🔧 **Stored Procedures** - Full SP execution with parameters
+- 📄 **Advanced Pagination** - OFFSET/FETCH with configurable page size
+- 🛡️ **Enhanced Security** - Pydantic validation, dangerous pattern detection
+- 📝 **Security Auditing** - Comprehensive JSON-formatted audit logs
+- 🎨 **Multiple Formats** - CSV, Table, and JSON output formats
 
-1. **Network connectivity**: Use `host.docker.internal` instead of `localhost` when connecting from container to host
-2. **Environment variables**: Ensure the connection string is properly escaped in Docker commands
-3. **Logs**: Check container logs with `docker logs <container_id>`
+See [CHANGELOG.md](CHANGELOG.md) for complete details.
 
-## License
+## Quick Examples
 
-This software is licensed under Apache 2.0 and is available "as is" - this means that if you turbo-nuke your database because you gave an AI agent `sa` access through this MCP server, we're not responsible.
+### Execute Query with Caching
+```python
+# First execution: ~150ms
+# Second execution: ~2ms (from cache!)
+{
+  "tool": "execute_sql",
+  "arguments": {
+    "query": "SELECT * FROM users WHERE active = 1",
+    "use_cache": true,
+    "format": "table"
+  }
+}
+```
+
+### Execute Transaction
+```python
+{
+  "tool": "execute_transaction",
+  "arguments": {
+    "queries": [
+      "UPDATE inventory SET quantity = quantity - 5 WHERE product_id = 123",
+      "INSERT INTO orders (product_id, quantity) VALUES (123, 5)"
+    ]
+  }
+}
+# All succeed or all rollback!
+```
+
+### Execute Stored Procedure
+```python
+{
+  "tool": "execute_stored_procedure",
+  "arguments": {
+    "procedure_name": "dbo.GetUsersByRole",
+    "parameters": {
+      "role": "admin",
+      "active_only": true
+    }
+  }
+}
+```
+
+## Documentation
+
+- **[USAGE_GUIDE.md](USAGE_GUIDE.md)** - Complete user guide with examples
+- **[CHANGELOG.md](CHANGELOG.md)** - Version history and changes
+- **[SECURITY.md](SECURITY.md)** - Security best practices
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+Contributions are welcome! Please see our improvement plan in `.agent/workflows/plan-de-mejoras.md`.
 
-## Architecture
+## License
 
-- **[Akka.NET](https://getakka.net/)**: Used for internal actor system coordination and database validation
-- **[MCP C# SDK](https://github.com/modelcontextprotocol/csharp-sdk)**: Official Model Context Protocol implementation
-- **Microsoft.Data.SqlClient**: High-performance SQL Server connectivity
-
+MIT

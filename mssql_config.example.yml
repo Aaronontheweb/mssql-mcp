@@ -1,0 +1,46 @@
+# Microsoft SQL Server MCP Server - Configuration Example
+
+# Database Connection
+server: localhost
+database: your_database
+user: your_username
+password: your_password
+port: 1433
+encrypt: false
+trust_server_certificate: false
+windows_auth: false
+connection_timeout: 30
+
+# Connection Pool Settings
+connection_pool:
+  min_size: 2      # Minimum connections to maintain
+  max_size: 10     # Maximum connections allowed
+  timeout: 30      # Timeout in seconds to get connection
+
+# Query Cache Settings
+cache:
+  enabled: false   # Enable query result caching
+  ttl: 300        # Time-to-live in seconds
+  max_size: 1000  # Maximum number of cached queries
+
+# Examples for different environments:
+
+# Azure SQL Database:
+# server: your-server.database.windows.net
+# database: your_database
+# user: your_username
+# password: your_password
+# encrypt: true
+# trust_server_certificate: false
+
+# Windows Authentication:
+# server: localhost
+# database: your_database
+# windows_auth: true
+# # user and password not needed
+
+# LocalDB:
+# server: "(localdb)\\MSSQLLocalDB"
+# database: your_database
+# user: your_username
+# password: your_password
