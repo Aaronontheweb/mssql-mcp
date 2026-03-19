@@ -1,5 +1,7 @@
 # mssql-mcp
 
+[![C#](https://img.shields.io/badge/C%23-.NET-blue)](https://dotnet.microsoft.com/) [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE) [![MCPAmpel](https://img.shields.io/endpoint?url=https://mcpampel.com/badge/aaronontheweb/mssql-mcp.json)](https://mcpampel.com/repo/aaronontheweb/mssql-mcp)
+
 A .NET-powered Model Context Protocol (MCP) server for Microsoft SQL Server.
 
 ## Abstract
